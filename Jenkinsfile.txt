@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "atharv-portfolio"
+        CONTAINER_NAME = "atharv-portfolio-container"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/AtharvPol/portfolio.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER .'
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh 'docker stop $CONTAINER_NAME || true'
+                sh 'docker rm $CONTAINER_NAME || true'
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                sh 'docker run -d --name $CONTAINER_NAME -p 80:80 $IMAGE_NAME:$BUILD_NUMBER'
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'docker ps'
+                sh 'curl -I http://localhost'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Portfolio deployed successfully!'
+        }
+
+        failure {
+            echo 'Portfolio deployment failed!'
+        }
+    }
+}
